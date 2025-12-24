@@ -19,7 +19,26 @@
     "glob": "^10.3.10",
     "@szmarczak/http-timer": "^5.0.1",
     "address": "^2.0.2",
-    "@babel/code-frame": "^7.23.5"
+    "@babel/code-frame": "^7.23.5",
+    "lodash": "4.17.15",
+    "moment": "2.29.1",
+    "axios": "0.21.1",
+    "minimist": "1.2.5",
+    "request": "2.88.0",
+    "tar": "4.4.8",
+    "handlebars": "4.5.3",
+    "ejs": "2.7.4",
+    "jquery": "3.4.1",
+    "bootstrap": "4.3.1",
+    "serialize-javascript": "3.1.0",
+    "marked": "0.7.0",
+    "debug": "2.6.8",
+    "express": "4.16.0",
+    "yargs-parser": "13.1.1",
+    "shelljs": "0.8.3",
+    "xmldom": "0.1.27",
+    "validator": "10.8.0",
+    "dot-prop": "4.2.0"
   }
   }
 

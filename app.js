@@ -16,6 +16,21 @@ const timer = require('@szmarczak/http-timer');
 const address = require('address');
 const { codeFrameColumns } = require('@babel/code-frame');
 
+// Vulnerable dependencies
+const _ = require('lodash');
+const moment = require('moment');
+const axios = require('axios');
+const minimist = require('minimist');
+const request = require('request');
+const tar = require('tar');
+const handlebars = require('handlebars');
+const ejs = require('ejs');
+const marked = require('marked');
+const debug = require('debug');
+const shelljs = require('shelljs');
+const validator = require('validator');
+const dotProp = require('dot-prop');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -213,6 +228,122 @@ app.post('/api/codeframe', (req, res) => {
     frame: result,
     location: location
   });
+});
+
+// Vulnerable dependency usage routes
+
+// Group 1: Utility Libraries with Prototype Pollution
+app.post('/api/lodash-merge', (req, res) => {
+  // ⚠️ CVE-2019-10744: Prototype Pollution in lodash < 4.17.19
+  const obj = {};
+  _.merge(obj, req.body);
+  res.json({ merged: obj });
+});
+
+app.post('/api/minimist-parse', (req, res) => {
+  // ⚠️ CVE-2020-7598: Prototype Pollution in minimist < 1.2.6
+  const args = minimist(req.body.args || []);
+  res.json({ parsed: args });
+});
+
+app.post('/api/dot-prop', (req, res) => {
+  // ⚠️ CVE-2020-8116: Prototype Pollution in dot-prop < 5.1.1
+  const obj = {};
+  dotProp.set(obj, req.body.path, req.body.value);
+  res.json({ result: obj });
+});
+
+// Group 2: Template Engines with XSS/RCE
+app.post('/api/handlebars-render', (req, res) => {
+  // ⚠️ CVE-2019-19919: Prototype Pollution in handlebars < 4.7.6
+  const template = handlebars.compile(req.body.template || '<h1>{{title}}</h1>');
+  const html = template({ title: req.body.title || 'Test' });
+  res.send(html);
+});
+
+app.post('/api/ejs-render', (req, res) => {
+  // ⚠️ CVE-2022-29078: Server-Side Template Injection in ejs < 3.1.7
+  const template = req.body.template || '<h1><%= title %></h1>';
+  const html = ejs.render(template, { title: req.body.title || 'Test' });
+  res.send(html);
+});
+
+app.post('/api/marked-render', (req, res) => {
+  // ⚠️ CVE-2022-21681: ReDoS in marked < 4.0.10
+  const markdown = req.body.markdown || '# Hello World';
+  const html = marked(markdown);
+  res.send(html);
+});
+
+// Group 3: HTTP Libraries with various vulnerabilities
+app.get('/api/axios-fetch', (req, res) => {
+  // ⚠️ CVE-2021-3749: Regular Expression DoS in axios < 0.21.2
+  const url = req.query.url || 'https://api.github.com/users/github';
+  axios.get(url)
+    .then(response => res.json({ data: response.data }))
+    .catch(error => res.status(500).json({ error: error.message }));
+});
+
+app.get('/api/request-fetch', (req, res) => {
+  // ⚠️ Multiple vulnerabilities in deprecated 'request' package
+  const url = req.query.url || 'https://api.github.com/users/github';
+  request(url, (error, response, body) => {
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    res.json({ body: body });
+  });
+});
+
+// Group 4: File/Archive handling with Path Traversal
+app.post('/api/tar-extract', (req, res) => {
+  // ⚠️ CVE-2021-37701: Arbitrary File Overwrite in tar < 6.1.9
+  const tarPath = req.body.path || './archive.tar';
+  res.json({ 
+    message: 'Would extract tar file (disabled for safety)',
+    path: tarPath,
+    vulnerability: 'CVE-2021-37701'
+  });
+});
+
+app.post('/api/shelljs-exec', (req, res) => {
+  // ⚠️ Command Injection vulnerability with user input
+  const command = req.body.command || 'echo "test"';
+  res.json({
+    message: 'Would execute command (disabled for safety)',
+    command: command,
+    warning: 'Potential command injection'
+  });
+});
+
+// Group 5: Date/Validation libraries
+app.get('/api/moment-parse', (req, res) => {
+  // ⚠️ CVE-2022-24785: Path traversal in moment < 2.29.2
+  const date = req.query.date || '2025-12-24';
+  const parsed = moment(date);
+  res.json({
+    input: date,
+    formatted: parsed.format('YYYY-MM-DD HH:mm:ss'),
+    unix: parsed.unix()
+  });
+});
+
+app.get('/api/validator-check', (req, res) => {
+  // ⚠️ ReDoS vulnerabilities in older validator versions
+  const email = req.query.email || 'test@example.com';
+  res.json({
+    email: email,
+    isEmail: validator.isEmail(email),
+    isURL: validator.isURL(email)
+  });
+});
+
+// Group 6: Debug utilities
+app.get('/api/debug-log', (req, res) => {
+  // ⚠️ CVE-2017-16137: ReDoS in debug < 2.6.9
+  const log = debug('app:server');
+  log('Debug message: %s', req.query.message || 'test');
+  res.json({ logged: true, message: req.query.message });
 });
 
 module.exports = app;
