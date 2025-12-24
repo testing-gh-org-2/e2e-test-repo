@@ -9,6 +9,12 @@ const net = require('net');
 const dns = require('dns');
 const os = require('os');
 const serialize = require('node-serialize');
+const Long = require('long');
+const utf8 = require('utf8');
+const { glob } = require('glob');
+const timer = require('@szmarczak/http-timer');
+const address = require('address');
+const { codeFrameColumns } = require('@babel/code-frame');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,6 +108,110 @@ app.get('/ping', (req, res) => {
       return;
     }
     res.send(`<pre>${stdout}</pre>`);
+  });
+});
+
+// Routes using the new dependencies
+
+// Long.js - for working with 64-bit integers
+app.get('/api/long', (req, res) => {
+  const longValue = Long.fromString('9223372036854775807');
+  const doubled = longValue.multiply(2);
+  res.json({
+    original: longValue.toString(),
+    doubled: doubled.toString(),
+    info: 'Working with 64-bit integers using Long.js'
+  });
+});
+
+// UTF8 encoding/decoding
+app.post('/api/utf8', (req, res) => {
+  const text = req.body.text || 'Hello 世界! 🌍';
+  const encoded = utf8.encode(text);
+  const decoded = utf8.decode(encoded);
+  res.json({
+    original: text,
+    encoded: encoded,
+    decoded: decoded,
+    byteLength: Buffer.byteLength(encoded)
+  });
+});
+
+// Glob - file pattern matching
+app.get('/api/glob', async (req, res) => {
+  try {
+    const pattern = req.query.pattern || '*.js';
+    const files = await glob(pattern, { cwd: __dirname });
+    res.json({
+      pattern: pattern,
+      matches: files,
+      count: files.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// HTTP Timer - measure HTTP request timing
+app.get('/api/timer', (req, res) => {
+  const request = https.get('https://api.github.com/users/github', (response) => {
+    const timings = timer(response);
+    
+    response.on('data', () => {});
+    response.on('end', () => {
+      res.json({
+        url: 'https://api.github.com/users/github',
+        timings: {
+          socket: timings.socket,
+          lookup: timings.lookup,
+          connect: timings.connect,
+          response: timings.response,
+          end: timings.end,
+          total: timings.end - timings.socket
+        }
+      });
+    });
+  });
+  
+  request.on('error', (error) => {
+    res.status(500).json({ error: error.message });
+  });
+});
+
+// Address - get network addresses
+app.get('/api/address', (req, res) => {
+  res.json({
+    ip: address.ip(),
+    ipv6: address.ipv6(),
+    mac: address.mac((err, addr) => {
+      if (!err) return addr;
+      return null;
+    }),
+    dns: address.dns
+  });
+});
+
+// Code Frame - generate code snippets with highlighted errors
+app.post('/api/codeframe', (req, res) => {
+  const code = req.body.code || `function example() {
+  const x = 1;
+  const y = 2;
+  return x + y;
+}`;
+  
+  const location = {
+    start: { line: 2, column: 8 }
+  };
+  
+  const result = codeFrameColumns(code, location, {
+    message: 'Variable declared but never used',
+    highlightCode: true
+  });
+  
+  res.json({
+    code: code,
+    frame: result,
+    location: location
   });
 });
 
