@@ -31,6 +31,54 @@ const shelljs = require('shelljs');
 const validator = require('validator');
 const dotProp = require('dot-prop');
 
+// @babel group
+const babelCore = require('@babel/core');
+const babelParser = require('@babel/parser');
+const babelTypes = require('@babel/types');
+const babelHelperValidator = require('@babel/helper-validator-identifier');
+
+// Webpack group
+const webpack = require('webpack');
+
+// Framework groups
+const React = require('react');
+const ReactDOM = require('react-dom');
+
+// Utilities with vulnerabilities
+const semver = require('semver');
+const ini = require('ini');
+const y18n = require('y18n');
+const elliptic = require('elliptic');
+const UAParser = require('ua-parser-js');
+const ansiRegex = require('ansi-regex');
+const trim = require('trim');
+const pathParse = require('path-parse');
+const crossFetch = require('cross-fetch');
+const forge = require('node-forge');
+const WebSocket = require('ws');
+const dnsPacket = require('dns-packet');
+const browserslist = require('browserslist');
+
+// @webassemblyjs group
+const wasmParser = require('@webassemblyjs/wasm-parser');
+const wasmGen = require('@webassemblyjs/wasm-gen');
+const wasmAst = require('@webassemblyjs/ast');
+
+// @xtuc group
+const xtucIeee754 = require('@xtuc/ieee754');
+const xtucLong = require('@xtuc/long');
+
+// @hapi group
+const hoek = require('@hapi/hoek');
+const topo = require('@hapi/topo');
+
+// @sideway group
+const sidewayAddress = require('@sideway/address');
+const sidewayFormula = require('@sideway/formula');
+
+// @sindresorhus group
+const sindresorhusIs = require('@sindresorhus/is');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -344,6 +392,322 @@ app.get('/api/debug-log', (req, res) => {
   const log = debug('app:server');
   log('Debug message: %s', req.query.message || 'test');
   res.json({ logged: true, message: req.query.message });
+});
+
+// @babel group vulnerabilities
+app.post('/api/babel-transform', (req, res) => {
+  // ⚠️ CVE-2020-5773: RCE in @babel/traverse < 7.23.2
+  const code = req.body.code || 'const x = 1;';
+  try {
+    const ast = babelParser.parse(code);
+    res.json({ 
+      ast: ast,
+      vulnerability: '@babel/* group - CVE-2020-5773'
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Webpack group
+app.get('/api/webpack-version', (req, res) => {
+  // ⚠️ Multiple vulnerabilities in webpack < 5.0.0
+  res.json({
+    webpackVersion: webpack.version,
+    vulnerability: 'webpack group - Multiple CVEs'
+  });
+});
+
+// React group
+app.get('/api/react-version', (req, res) => {
+  // ⚠️ CVE-2020-15168 in react-dom < 16.14.0
+  res.json({
+    reactVersion: React.version,
+    vulnerability: 'React ecosystem vulnerabilities'
+  });
+});
+
+// Crypto/Security utilities group
+app.post('/api/elliptic-sign', (req, res) => {
+  // ⚠️ CVE-2020-28498: Signature Malleability in elliptic < 6.5.4
+  const ec = new elliptic.ec('secp256k1');
+  const key = ec.genKeyPair();
+  const msg = req.body.message || 'test message';
+  const signature = key.sign(msg);
+  res.json({
+    signature: signature.toDER('hex'),
+    vulnerability: 'CVE-2020-28498 - elliptic'
+  });
+});
+
+app.post('/api/forge-decrypt', (req, res) => {
+  // ⚠️ CVE-2022-24771, CVE-2022-24772 in node-forge < 1.3.0
+  res.json({
+    message: 'node-forge crypto operations',
+    vulnerability: 'CVE-2022-24771, CVE-2022-24772'
+  });
+});
+
+// Parser/String utilities group
+app.get('/api/semver-parse', (req, res) => {
+  // ⚠️ CVE-2022-25883: ReDoS in semver < 7.5.2
+  const version = req.query.version || '1.2.3';
+  const parsed = semver.parse(version);
+  res.json({
+    version: version,
+    parsed: parsed,
+    vulnerability: 'CVE-2022-25883 - semver'
+  });
+});
+
+app.post('/api/ini-parse', (req, res) => {
+  // ⚠️ CVE-2020-7788: Prototype Pollution in ini < 1.3.6
+  const config = ini.parse(req.body.config || '[section]\nkey=value');
+  res.json({
+    parsed: config,
+    vulnerability: 'CVE-2020-7788 - ini'
+  });
+});
+
+app.get('/api/y18n-translate', (req, res) => {
+  // ⚠️ CVE-2020-7774: Prototype Pollution in y18n < 4.0.1
+  const text = req.query.text || 'Hello';
+  res.json({
+    text: text,
+    vulnerability: 'CVE-2020-7774 - y18n'
+  });
+});
+
+app.get('/api/ua-parser', (req, res) => {
+  // ⚠️ CVE-2021-27292: ReDoS in ua-parser-js < 0.7.28
+  const parser = new UAParser();
+  const ua = req.headers['user-agent'] || 'Mozilla/5.0';
+  parser.setUA(ua);
+  const result = parser.getResult();
+  res.json({
+    userAgent: ua,
+    parsed: result,
+    vulnerability: 'CVE-2021-27292 - ua-parser-js'
+  });
+});
+
+app.post('/api/ansi-regex', (req, res) => {
+  // ⚠️ CVE-2021-3807: ReDoS in ansi-regex < 5.0.1
+  const text = req.body.text || 'Hello \x1b[31mWorld\x1b[0m';
+  const matches = text.match(ansiRegex());
+  res.json({
+    text: text,
+    matches: matches,
+    vulnerability: 'CVE-2021-3807 - ansi-regex'
+  });
+});
+
+app.post('/api/trim', (req, res) => {
+  // ⚠️ CVE-2020-7753: ReDoS in trim < 0.0.3
+  const text = req.body.text || '  hello world  ';
+  const trimmed = trim(text);
+  res.json({
+    original: text,
+    trimmed: trimmed,
+    vulnerability: 'CVE-2020-7753 - trim'
+  });
+});
+
+app.get('/api/path-parse', (req, res) => {
+  // ⚠️ CVE-2021-23343: ReDoS in path-parse < 1.0.7
+  const filePath = req.query.path || '/home/user/file.txt';
+  const parsed = pathParse(filePath);
+  res.json({
+    path: filePath,
+    parsed: parsed,
+    vulnerability: 'CVE-2021-23343 - path-parse'
+  });
+});
+
+// Network utilities group
+app.get('/api/cross-fetch', (req, res) => {
+  // ⚠️ CVE-2022-1365 in cross-fetch < 3.1.5
+  const url = req.query.url || 'https://api.github.com/users/github';
+  crossFetch(url)
+    .then(response => response.json())
+    .then(data => res.json({ 
+      data: data,
+      vulnerability: 'CVE-2022-1365 - cross-fetch'
+    }))
+    .catch(error => res.status(500).json({ error: error.message }));
+});
+
+app.get('/api/websocket', (req, res) => {
+  // ⚠️ CVE-2021-32640: ReDoS in ws < 7.4.6
+  res.json({
+    wsVersion: WebSocket.Sec,
+    vulnerability: 'CVE-2021-32640 - ws'
+  });
+});
+
+app.post('/api/dns-packet', (req, res) => {
+  // ⚠️ CVE-2021-23386: Memory exposure in dns-packet < 5.2.2
+  res.json({
+    message: 'DNS packet parsing',
+    vulnerability: 'CVE-2021-23386 - dns-packet'
+  });
+});
+
+app.get('/api/browserslist', (req, res) => {
+  // ⚠️ CVE-2021-23364: ReDoS in browserslist < 4.16.5
+  const browsers = browserslist('> 0.5%, last 2 versions');
+  res.json({
+    browsers: browsers,
+    vulnerability: 'CVE-2021-23364 - browserslist'
+  });
+});
+
+// @webassemblyjs group routes
+app.post('/api/wasm-parse', (req, res) => {
+  // ⚠️ @webassemblyjs/* group - Multiple vulnerabilities in 1.9.0
+  res.json({
+    group: '@webassemblyjs',
+    packages: [
+      '@webassemblyjs/wasm-parser',
+      '@webassemblyjs/wasm-gen',
+      '@webassemblyjs/ast',
+      '@webassemblyjs/helper-buffer',
+      '@webassemblyjs/helper-code-frame'
+    ],
+    version: '1.9.0',
+    vulnerability: 'Multiple CVEs in @webassemblyjs group'
+  });
+});
+
+// @xtuc group routes
+app.get('/api/xtuc-ieee754', (req, res) => {
+  // ⚠️ @xtuc/ieee754@1.2.0
+  const value = xtucIeee754.write([1.0], 0);
+  res.json({
+    group: '@xtuc',
+    package: '@xtuc/ieee754',
+    version: '1.2.0',
+    result: value
+  });
+});
+
+app.get('/api/xtuc-long', (req, res) => {
+  // ⚠️ @xtuc/long@4.2.2
+  const longVal = new xtucLong(0xFFFFFFFF, 0x7FFFFFFF);
+  res.json({
+    group: '@xtuc',
+    package: '@xtuc/long',
+    version: '4.2.2',
+    value: longVal.toString()
+  });
+});
+
+// @hapi group routes
+app.post('/api/hapi-hoek', (req, res) => {
+  // ⚠️ CVE-2020-36604: Prototype Pollution in @hapi/hoek < 9.3.1
+  const obj = { a: 1 };
+  const merged = hoek.merge(obj, req.body);
+  res.json({
+    group: '@hapi',
+    package: '@hapi/hoek',
+    version: '9.3.0',
+    vulnerability: 'CVE-2020-36604',
+    merged: merged
+  });
+});
+
+app.get('/api/hapi-topo', (req, res) => {
+  // ⚠️ @hapi/topo@5.1.0
+  const topo = new topo.Sorter();
+  topo.add('a', { after: 'b' });
+  topo.add('b');
+  const nodes = topo.nodes;
+  res.json({
+    group: '@hapi',
+    package: '@hapi/topo',
+    version: '5.1.0',
+    nodes: nodes
+  });
+});
+
+// @sideway group routes
+app.post('/api/sideway-address', (req, res) => {
+  // ⚠️ @sideway/address@4.1.5
+  const addr = req.body.address || 'user@example.com';
+  res.json({
+    group: '@sideway',
+    package: '@sideway/address',
+    version: '4.1.5',
+    address: addr
+  });
+});
+
+app.post('/api/sideway-formula', (req, res) => {
+  // ⚠️ @sideway/formula@3.0.1
+  res.json({
+    group: '@sideway',
+    package: '@sideway/formula',
+    version: '3.0.1',
+    message: 'Formula validation'
+  });
+});
+
+// @sindresorhus group routes
+app.post('/api/sindresorhus-is', (req, res) => {
+  // ⚠️ @sindresorhus/is@0.14.0
+  const value = req.body.value;
+  res.json({
+    group: '@sindresorhus',
+    package: '@sindresorhus/is',
+    version: '0.14.0',
+    checks: {
+      isString: sindresorhusIs.string(value),
+      isNumber: sindresorhusIs.number(value),
+      isObject: sindresorhusIs.object(value)
+    }
+  });
+});
+
+// @types group info
+app.get('/api/types-info', (req, res) => {
+  res.json({
+    group: '@types',
+    packages: [
+      '@types/node@24.10.1',
+      '@types/express@4.17.0',
+      '@types/lodash@4.14.165',
+      '@types/glob@7.2.0',
+      '@types/minimatch@5.1.2',
+      '@types/babylon@6.16.9',
+      '@types/babel-types@7.0.16'
+    ],
+    purpose: 'TypeScript type definitions'
+  });
+});
+
+// @parcel/watcher group info
+app.get('/api/parcel-watcher', (req, res) => {
+  res.json({
+    group: '@parcel/watcher',
+    mainPackage: '@parcel/watcher@2.5.1',
+    platformPackages: [
+      '@parcel/watcher-android-arm64',
+      '@parcel/watcher-darwin-arm64',
+      '@parcel/watcher-darwin-x64',
+      '@parcel/watcher-freebsd-x64',
+      '@parcel/watcher-linux-arm-glibc',
+      '@parcel/watcher-linux-arm-musl',
+      '@parcel/watcher-linux-arm64-glibc',
+      '@parcel/watcher-linux-arm64-musl',
+      '@parcel/watcher-linux-x64-glibc',
+      '@parcel/watcher-linux-x64-musl',
+      '@parcel/watcher-win32-arm64',
+      '@parcel/watcher-win32-ia32',
+      '@parcel/watcher-win32-x64'
+    ],
+    version: '2.5.1',
+    purpose: 'File watching across multiple platforms'
+  });
 });
 
 module.exports = app;
