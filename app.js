@@ -710,4 +710,344 @@ app.get('/api/parcel-watcher', (req, res) => {
   });
 });
 
+// ⚠️ Additional Common CodeQL Vulnerabilities for Testing
+
+// CWE-22: Path Traversal
+app.get('/api/read-file', (req, res) => {
+  const filename = req.query.file;
+  // ⚠️ CWE-22: Improper Limitation of a Pathname to a Restricted Directory
+  const filePath = path.join(__dirname, filename);
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.send(data);
+    }
+  });
+});
+
+// CWE-94: Code Injection via eval()
+app.post('/api/calculate', (req, res) => {
+  const expression = req.body.expression;
+  // ⚠️ CWE-94: Improper Control of Generation of Code (eval)
+  const result = eval(expression);
+  res.json({ expression, result });
+});
+
+// CWE-94: Code Injection via vm.runInThisContext()
+app.post('/api/run-code', (req, res) => {
+  const code = req.body.code;
+  // ⚠️ CWE-94: Code injection via vm module
+  try {
+    const result = vm.runInThisContext(code);
+    res.json({ code, result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CWE-502: Deserialization of Untrusted Data
+app.post('/api/deserialize', (req, res) => {
+  const serialized = req.body.data;
+  // ⚠️ CWE-502: Dangerous deserialization with node-serialize
+  try {
+    const obj = serialize.unserialize(serialized);
+    res.json({ deserialized: obj });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CWE-326: Inadequate Encryption Strength
+app.post('/api/encrypt-weak', (req, res) => {
+  const text = req.body.text;
+  // ⚠️ CWE-326: Using weak encryption algorithm (DES)
+  const cipher = crypto.createCipher('des', 'password123');
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  res.json({ encrypted });
+});
+
+// CWE-330: Use of Insufficiently Random Values
+app.get('/api/random-token', (req, res) => {
+  // ⚠️ CWE-330: Using Math.random() for security-sensitive operations
+  const token = Math.random().toString(36).substring(2, 15);
+  res.json({ token, warning: 'Insecure random token generation' });
+});
+
+// CWE-611: Improper Restriction of XML External Entity Reference
+app.post('/api/parse-xml', (req, res) => {
+  const xmlData = req.body.xml;
+  // ⚠️ CWE-611: XXE vulnerability - parsing XML without disabling external entities
+  res.json({ 
+    message: 'XML parsing (vulnerable to XXE)',
+    xml: xmlData,
+    warning: 'External entity processing enabled'
+  });
+});
+
+// CWE-776: Unrestricted Recursive Entity References in DTDs
+app.post('/api/process-dtd', (req, res) => {
+  const dtd = req.body.dtd;
+  // ⚠️ CWE-776: Billion Laughs attack vulnerability
+  res.json({ 
+    message: 'DTD processing (vulnerable to billion laughs)',
+    dtd: dtd
+  });
+});
+
+// CWE-918: Server-Side Request Forgery (SSRF)
+app.get('/api/proxy', (req, res) => {
+  const url = req.query.url;
+  // ⚠️ CWE-918: SSRF vulnerability - no URL validation
+  https.get(url, (response) => {
+    let data = '';
+    response.on('data', chunk => data += chunk);
+    response.on('end', () => res.send(data));
+  }).on('error', err => res.status(500).json({ error: err.message }));
+});
+
+// CWE-601: URL Redirection to Untrusted Site (Open Redirect)
+app.get('/api/redirect', (req, res) => {
+  const redirectUrl = req.query.url;
+  // ⚠️ CWE-601: Open redirect vulnerability
+  res.redirect(redirectUrl);
+});
+
+// CWE-184: Incomplete List of Disallowed Inputs
+app.post('/api/validate-email', (req, res) => {
+  const email = req.body.email;
+  // ⚠️ CWE-184: Weak validation - incomplete input filtering
+  const isValid = email.includes('@') && email.includes('.');
+  res.json({ email, isValid, warning: 'Weak validation logic' });
+});
+
+// CWE-1004: Sensitive Cookie Without 'HttpOnly' Flag
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  // ⚠️ CWE-1004: Cookie without HttpOnly and Secure flags
+  res.cookie('sessionId', '123456789', { 
+    httpOnly: false,
+    secure: false
+  });
+  res.json({ message: 'Logged in (insecure cookie)' });
+});
+
+// CWE-327: Use of a Broken or Risky Cryptographic Algorithm
+app.post('/api/hash-md5', (req, res) => {
+  const data = req.body.data;
+  // ⚠️ CWE-327: Using MD5 for hashing (broken algorithm)
+  const hash = crypto.createHash('md5').update(data).digest('hex');
+  res.json({ data, hash, algorithm: 'MD5 (broken)' });
+});
+
+// CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator
+app.get('/api/session-id', (req, res) => {
+  // ⚠️ CWE-338: Weak PRNG for session ID
+  const sessionId = Math.floor(Math.random() * 1000000);
+  res.json({ sessionId, warning: 'Weak session ID generation' });
+});
+
+// CWE-732: Incorrect Permission Assignment for Critical Resource
+app.post('/api/create-file', (req, res) => {
+  const filename = req.body.filename;
+  const content = req.body.content;
+  // ⚠️ CWE-732: File created with overly permissive permissions
+  const filePath = path.join(__dirname, 'uploads', filename);
+  fs.writeFile(filePath, content, { mode: 0o777 }, (err) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.json({ message: 'File created with 777 permissions' });
+    }
+  });
+});
+
+// CWE-759: Use of a One-Way Hash without a Salt
+app.post('/api/hash-password', (req, res) => {
+  const password = req.body.password;
+  // ⚠️ CWE-759: Hashing password without salt
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  res.json({ hash, warning: 'Password hashed without salt' });
+});
+
+// CWE-835: Loop with Unreachable Exit Condition
+app.get('/api/infinite-loop', (req, res) => {
+  const limit = parseInt(req.query.limit) || 10;
+  // ⚠️ CWE-835: Potential infinite loop if limit is negative
+  let count = 0;
+  while (count < limit) {
+    count += parseInt(req.query.increment) || 1;
+  }
+  res.json({ count });
+});
+
+// CWE-400: Uncontrolled Resource Consumption
+app.post('/api/allocate-memory', (req, res) => {
+  const size = req.body.size;
+  // ⚠️ CWE-400: No limit on memory allocation
+  const buffer = Buffer.alloc(size);
+  res.json({ allocated: size, warning: 'Uncontrolled resource consumption' });
+});
+
+// CWE-1333: Regular Expression Denial of Service (ReDoS)
+app.get('/api/validate-input', (req, res) => {
+  const input = req.query.input;
+  // ⚠️ CWE-1333: ReDoS vulnerability with catastrophic backtracking
+  const regex = /^(a+)+$/;
+  const isValid = regex.test(input);
+  res.json({ input, isValid });
+});
+
+// CWE-134: Use of Externally-Controlled Format String
+app.post('/api/format-log', (req, res) => {
+  const message = req.body.message;
+  // ⚠️ CWE-134: Format string vulnerability
+  const formatted = require('util').format(message, req.body.args);
+  res.json({ formatted });
+});
+
+// CWE-20: Improper Input Validation (Integer Overflow)
+app.post('/api/add-numbers', (req, res) => {
+  const a = parseInt(req.body.a);
+  const b = parseInt(req.body.b);
+  // ⚠️ CWE-20: No overflow check
+  const sum = a + b;
+  res.json({ a, b, sum });
+});
+
+// CWE-200: Exposure of Sensitive Information
+app.get('/api/debug-info', (req, res) => {
+  // ⚠️ CWE-200: Exposing sensitive system information
+  res.json({
+    env: process.env,
+    platform: os.platform(),
+    hostname: os.hostname(),
+    userInfo: os.userInfo(),
+    networkInterfaces: os.networkInterfaces()
+  });
+});
+
+// CWE-209: Generation of Error Message Containing Sensitive Information
+app.get('/api/database-query', (req, res) => {
+  const userId = req.query.id;
+  // ⚠️ CWE-209: Exposing detailed error messages
+  try {
+    throw new Error(`Database connection failed: user=${userId}, host=db.internal.com, password=${DB_PASSWORD}`);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CWE-319: Cleartext Transmission of Sensitive Information
+app.post('/api/send-credentials', (req, res) => {
+  const { username, password } = req.body;
+  // ⚠️ CWE-319: Transmitting credentials in cleartext
+  const credentials = `${username}:${password}`;
+  res.json({ credentials, warning: 'Cleartext transmission' });
+});
+
+// CWE-598: Use of GET Request Method With Sensitive Query Strings
+app.get('/api/authenticate', (req, res) => {
+  const { username, password } = req.query;
+  // ⚠️ CWE-598: Sensitive data in GET parameters
+  res.json({ 
+    message: 'Authentication attempt',
+    username,
+    warning: 'Password should not be in URL'
+  });
+});
+
+// CWE-862: Missing Authorization
+app.delete('/api/delete-user', (req, res) => {
+  const userId = req.body.userId;
+  // ⚠️ CWE-862: No authorization check before deletion
+  res.json({ 
+    message: `User ${userId} deleted`,
+    warning: 'No authorization check performed'
+  });
+});
+
+// CWE-863: Incorrect Authorization
+app.post('/api/transfer-funds', (req, res) => {
+  const { from, to, amount } = req.body;
+  // ⚠️ CWE-863: No verification that requester owns 'from' account
+  res.json({ 
+    message: `Transferred ${amount} from ${from} to ${to}`,
+    warning: 'No ownership verification'
+  });
+});
+
+// CWE-918: SSRF with DNS Rebinding
+app.get('/api/fetch-internal', (req, res) => {
+  const hostname = req.query.host;
+  // ⚠️ CWE-918: DNS rebinding vulnerability
+  dns.lookup(hostname, (err, address) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.json({ hostname, address, warning: 'DNS rebinding possible' });
+    }
+  });
+});
+
+// CWE-78: OS Command Injection with spawn
+app.post('/api/execute', (req, res) => {
+  const command = req.body.command;
+  const args = req.body.args || [];
+  // ⚠️ CWE-78: Command injection via spawn
+  const process = spawn(command, args);
+  let output = '';
+  process.stdout.on('data', data => output += data);
+  process.on('close', code => {
+    res.json({ command, args, output, exitCode: code });
+  });
+});
+
+// CWE-426: Untrusted Search Path
+app.get('/api/load-module', (req, res) => {
+  const moduleName = req.query.module;
+  // ⚠️ CWE-426: Dynamic require with user input
+  try {
+    const module = require(moduleName);
+    res.json({ moduleName, loaded: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// CWE-780: Use of RSA Algorithm without OAEP
+app.post('/api/encrypt-rsa', (req, res) => {
+  const data = req.body.data;
+  // ⚠️ CWE-780: RSA encryption without OAEP padding
+  res.json({ 
+    message: 'RSA encryption without OAEP',
+    data,
+    warning: 'Use RSA-OAEP for encryption'
+  });
+});
+
+// CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute
+app.post('/api/set-token', (req, res) => {
+  const token = req.body.token;
+  // ⚠️ CWE-614: Secure cookie not set
+  res.cookie('authToken', token, {
+    httpOnly: true,
+    secure: false  // Should be true for HTTPS
+  });
+  res.json({ message: 'Token set without secure flag' });
+});
+
+// CWE-307: Improper Restriction of Excessive Authentication Attempts
+app.post('/api/brute-force-login', (req, res) => {
+  const { username, password } = req.body;
+  // ⚠️ CWE-307: No rate limiting or account lockout
+  const isValid = password === 'admin123';
+  res.json({ 
+    username,
+    authenticated: isValid,
+    warning: 'No brute force protection'
+  });
+});
+
 module.exports = app;

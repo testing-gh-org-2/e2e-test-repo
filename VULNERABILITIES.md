@@ -2,6 +2,74 @@
 
 This document lists all intentional vulnerabilities in this test project with their CVE and CWE identifiers.
 
+## CodeQL Detectable Vulnerabilities (CWEs)
+
+### Critical Code Security Issues
+| CWE ID | Vulnerability Type | Location | Description |
+|--------|-------------------|----------|-------------|
+| CWE-89 | SQL Injection | `/user` endpoint | Unsanitized user input in SQL query |
+| CWE-78 | OS Command Injection | `/ping` endpoint | Direct command execution with user input |
+| CWE-78 | OS Command Injection | `/api/execute` endpoint | Command injection via spawn |
+| CWE-79 | Cross-Site Scripting (XSS) | `/search` endpoint | Reflected XSS from query parameter |
+| CWE-22 | Path Traversal | `/api/read-file` endpoint | Unrestricted file path access |
+| CWE-94 | Code Injection | `/api/calculate` endpoint | Use of eval() with user input |
+| CWE-94 | Code Injection | `/api/run-code` endpoint | vm.runInThisContext with user input |
+| CWE-502 | Insecure Deserialization | `/api/deserialize` endpoint | node-serialize unserialize() |
+| CWE-611 | XML External Entity (XXE) | `/api/parse-xml` endpoint | XML parsing without XXE protection |
+| CWE-776 | Billion Laughs Attack | `/api/process-dtd` endpoint | Unrestricted DTD processing |
+| CWE-918 | Server-Side Request Forgery | `/api/proxy` endpoint | Unvalidated URL fetching |
+| CWE-918 | SSRF with DNS Rebinding | `/api/fetch-internal` endpoint | DNS lookup without validation |
+| CWE-601 | Open Redirect | `/api/redirect` endpoint | Unvalidated redirect URL |
+| CWE-1321 | Prototype Pollution | `/update-config` endpoint | Direct object property assignment |
+
+### Cryptographic Vulnerabilities
+| CWE ID | Vulnerability Type | Location | Description |
+|--------|-------------------|----------|-------------|
+| CWE-798 | Hard-coded Credentials | Lines 87-88 | DB_PASSWORD and API_SECRET in code |
+| CWE-326 | Weak Encryption | `/api/encrypt-weak` endpoint | DES algorithm usage |
+| CWE-327 | Broken Crypto Algorithm | `/api/hash-md5` endpoint | MD5 hashing usage |
+| CWE-330 | Weak Random Values | `/api/random-token` endpoint | Math.random() for tokens |
+| CWE-338 | Weak PRNG | `/api/session-id` endpoint | Math.random() for session IDs |
+| CWE-759 | Hash Without Salt | `/api/hash-password` endpoint | SHA-256 without salt |
+| CWE-780 | RSA Without OAEP | `/api/encrypt-rsa` endpoint | RSA without proper padding |
+
+### Input Validation & Injection
+| CWE ID | Vulnerability Type | Location | Description |
+|--------|-------------------|----------|-------------|
+| CWE-20 | Improper Input Validation | `/api/add-numbers` endpoint | No integer overflow check |
+| CWE-134 | Format String Vulnerability | `/api/format-log` endpoint | User-controlled format string |
+| CWE-184 | Incomplete Input Filtering | `/api/validate-email` endpoint | Weak email validation |
+| CWE-1333 | Regular Expression DoS | `/api/validate-input` endpoint | Catastrophic backtracking |
+| CWE-426 | Untrusted Search Path | `/api/load-module` endpoint | Dynamic require() with user input |
+
+### Authentication & Authorization
+| CWE ID | Vulnerability Type | Location | Description |
+|--------|-------------------|----------|-------------|
+| CWE-307 | No Brute Force Protection | `/api/brute-force-login` endpoint | No rate limiting |
+| CWE-862 | Missing Authorization | `/api/delete-user` endpoint | No auth check before deletion |
+| CWE-863 | Incorrect Authorization | `/api/transfer-funds` endpoint | No ownership verification |
+
+### Information Disclosure
+| CWE ID | Vulnerability Type | Location | Description |
+|--------|-------------------|----------|-------------|
+| CWE-200 | Sensitive Info Exposure | `/api/debug-info` endpoint | Exposes env vars and system info |
+| CWE-209 | Error Message Info Leak | `/api/database-query` endpoint | Detailed error with credentials |
+| CWE-319 | Cleartext Transmission | `/api/send-credentials` endpoint | Credentials in plaintext |
+| CWE-598 | Sensitive Data in GET | `/api/authenticate` endpoint | Password in query string |
+
+### Session Management
+| CWE ID | Vulnerability Type | Location | Description |
+|--------|-------------------|----------|-------------|
+| CWE-614 | Cookie Without Secure | `/api/set-token` endpoint | Missing Secure flag |
+| CWE-1004 | Cookie Without HttpOnly | `/api/login` endpoint | Missing HttpOnly flag |
+
+### Resource Management
+| CWE ID | Vulnerability Type | Location | Description |
+|--------|-------------------|----------|-------------|
+| CWE-400 | Resource Exhaustion | `/api/allocate-memory` endpoint | Uncontrolled memory allocation |
+| CWE-732 | Incorrect Permissions | `/api/create-file` endpoint | File with 777 permissions |
+| CWE-835 | Infinite Loop | `/api/infinite-loop` endpoint | Loop with unreachable exit |
+
 ## Package Vulnerabilities (CVEs)
 
 ### Critical Severity
