@@ -10,11 +10,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "lodash": "^4.17.21",
-    "node-fetch": "^1.7.3",
-    "prismjs": "^1.27.0",
-    "redux": "^5.0.1",
-    "@angular/core": "9.1.0",
-    "connect": "3.6.6"
+    "@angular/core": "9.1.0"
   }
 }

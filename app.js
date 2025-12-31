@@ -80,12 +80,6 @@ app.post('/update-config', (req, res) => {
   res.json({ message: 'Config updated', config });
 });
 
-app.get('/search', (req, res) => {
-  const searchTerm = req.query.q;
-  // ⚠️ Reflected XSS vulnerability
-  res.send(`<h1>Search Results for: ${searchTerm}</h1>`);
-});
-
 app.get('/ping', (req, res) => {
   const host = req.query.host;
   // ⚠️ Command Injection vulnerability
@@ -119,109 +113,6 @@ app.get('/file', (req, res) => {
       return;
     }
     res.send(data);
-  });
-});
-
-app.get('/token', (req, res) => {
-  // ⚠️ Insecure random number generation
-  const token = Math.random().toString(36).substring(7);
-  res.json({ sessionToken: token });
-});
-
-app.get('/fetch', (req, res) => {
-  const url = req.query.url;
-  // ⚠️ SSRF (Server-Side Request Forgery) vulnerability
-  https.get(url, (response) => {
-    let data = '';
-    response.on('data', (chunk) => { data += chunk; });
-    response.on('end', () => { res.send(data); });
-  }).on('error', (err) => {
-    res.send(`Error: ${err.message}`);
-  });
-});
-
-app.get('/validate', (req, res) => {
-  const email = req.query.email;
-  // ⚠️ ReDoS (Regular Expression Denial of Service) vulnerability
-  const emailRegex = /^([a-zA-Z0-9]+)+@[a-zA-Z0-9]+\.[a-zA-Z]+$/;
-  const isValid = emailRegex.test(email);
-  res.json({ valid: isValid });
-});
-
-app.post('/login', (req, res) => {
-  const username = req.body.username;
-  // ⚠️ NoSQL Injection vulnerability
-  const query = { username: username };
-  res.json({ message: 'Would query MongoDB with:', query });
-});
-
-app.post('/ai-prompt', (req, res) => {
-  const userInput = req.body.prompt;
-  // ⚠️ Prompt Injection vulnerability - AI/LLM security issue
-  // Direct user input passed to AI without sanitization
-  const systemPrompt = `You are a helpful assistant. User asks: ${userInput}`;
-  res.json({ systemPrompt: systemPrompt });
-});
-
-app.post('/update-profile', (req, res) => {
-  const user = { id: 1, name: 'John', role: 'user', isAdmin: false };
-  // ⚠️ Mass Assignment vulnerability - allows unauthorized field modification
-  Object.assign(user, req.body);
-  res.json({ message: 'Profile updated', user: user });
-});
-
-app.get('/verify', (req, res) => {
-  const token = req.query.token;
-  // ⚠️ Insecure JWT handling - no signature verification
-  const parts = token.split('.');
-  const payload = Buffer.from(parts[1], 'base64').toString();
-  res.json({ decoded: JSON.parse(payload) });
-});
-
-app.post('/webhook', (req, res) => {
-  // ⚠️ Missing webhook signature verification
-  // Accepts data from any source without validation
-  const data = req.body;
-  console.log('Webhook received:', data);
-  res.json({ status: 'processed' });
-});
-
-app.get('/redirect', (req, res) => {
-  const target = req.query.url;
-  // ⚠️ Open Redirect vulnerability
-  res.redirect(target);
-});
-
-app.get('/api/hello', (req, res) => {
-  res.json({
-    message: 'Hello from Express API!',
-    timestamp: new Date().toISOString(),
-    status: 'success'
-  });
-});
-
-app.post('/api/echo', (req, res) => {
-  res.json({
-    message: 'Echo endpoint',
-    received: req.body,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.originalUrl
-  });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Something went wrong!',
-    message: err.message
   });
 });
 
